@@ -2,20 +2,15 @@
   sudo: true
   vars:
 
-  ubuntu_common_required_packages:
-    - ufw
-
-  ubuntu_common_ssh_port: 22
-
 tasks:
     - name: upgrade all packages
-      yum: name=* state=latest
+      apt: name=* state=latest
 
 - name: Setup ufw
       ufw: state=enabled policy=deny
 
     - name: Allow ssh traffic
-      ufw: rule=allow port={{ ubuntu_common_ssh_port }} proto=tcp
+      ufw: rule=allow port=22 proto=tcp
 
     - name: Check for reboot hint.
       shell: LAST_KERNEL=$(rpm -q --last kernel | perl -pe 's/^kernel-(\S+).*/$1/' | head -1); CURRENT_KERNEL=$(uname -r); if [ $LAST_KERNEL != $CURRENT_KERNEL ]; then echo 'reboot'; else echo 'no'; fi
