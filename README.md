@@ -1,2 +1,3 @@
 # Ansible
-My Scripts
+
+Run:  ansible-playbook -K so.yml
