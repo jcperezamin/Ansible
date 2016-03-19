@@ -1,34 +1,27 @@
 - hosts: all
-  sudo: true
-  vars:
+  tasks:
+    - name: Upgrade all packages in RedHat-based machines
+      when: ansible_os_family == "Redhat"
+      yum: name=* state=latest
 
-tasks:
-    - name: upgrade all packages
-      apt: name=* state=latest
+    - name: Upgrade all packages in Debian-based machines
+      when: ansible_os_family == "Debian"
+      action: apt update_cache=yes
+      sudo: True
+      sudo_user: root
 
-- name: Setup ufw
-      ufw: state=enabled policy=deny
+    - name: Reboot server
+      command: /sbin/reboot
+      sudo: True
+      sudo_user: root
 
-    - name: Allow ssh traffic
-      ufw: rule=allow port=22 proto=tcp
+    - name: Wait for the server to finish rebooting
+      sudo: no
+      local_action: wait_for host="{{ inventory_hostname }}" search_regex=OpenSSH port=22 timeout=300
 
-    - name: Check for reboot hint.
-      shell: LAST_KERNEL=$(rpm -q --last kernel | perl -pe 's/^kernel-(\S+).*/$1/' | head -1); CURRENT_KERNEL=$(uname -r); if [ $LAST_KERNEL != $CURRENT_KERNEL ]; then echo 'reboot'; else echo 'no'; fi
-      ignore_errors: true
-      register: reboot_hint
-
-    - name: Rebooting ...
-      command: shutdown -r now "Reboot required for updated kernel"
-      async: 0
-      poll: 0
-      sudo: true
-      ignore_errors: true
-      when: reboot_hint.stdout.find("reboot") != -1
-      register: rebooting
-
-    - name: Wait for thing to reboot...
-      pause: seconds=45
-      when: rebooting|changed
-
-    - name: uptime
-      command: /sbin/uptime
+    - name: Uptime
+      command: /usr/bin/uptime
+      register: uptime
+      sudo: True
+      sudo_user: root
+    - debug: var=uptime.stdout_lines
